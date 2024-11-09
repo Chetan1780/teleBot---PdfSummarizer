@@ -5,6 +5,7 @@ const pdf = require('pdf-parse');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
+bot.telegram.setWebhook(`https:tele-bot-pdf-summarizer.vercel.app/bot${process.env.BOT_TOKEN}`);
 
 function splitIntoChunks(text, maxLength = 3000) {
   const chunks = [];
