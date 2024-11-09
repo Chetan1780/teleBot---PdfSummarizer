@@ -1,30 +1,11 @@
-const express = require('express');
 const { Telegraf } = require('telegraf');
 const { message } = require('telegraf/filters');
 const axios = require('axios');
 const pdf = require('pdf-parse');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const app = express();
-app.use(express.json());  // Middleware to parse JSON bodies
-
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
-// Webhook route for handling Telegram updates
-app.post('/webhook', async (req, res) => {
-  try {
-    await bot.handleUpdate(req.body);
-    res.sendStatus(200);  // Respond to Telegram server with 200 OK
-  } catch (error) {
-    console.error('Error in webhook handling:', error);
-    res.sendStatus(500);  // Respond with 500 on error
-  }
-});
-
-// Set webhook for your bot
-bot.telegram.setWebhook(`https://tele-bot-pdf-summarizer.vercel.app/webhook`);
-
-// Split text into chunks to send multiple parts
 function splitIntoChunks(text, maxLength = 3000) {
   const chunks = [];
   let currentChunk = '';
@@ -55,7 +36,9 @@ function formatText(text) {
   return text
     .split('\n')
     .map(line => {
-      line = line.replace(/([_*[\]()~`>#+\-=|{}.!])/g, '\\$1');
+      // Escape MarkdownV2 special characters
+      line = line.replace(/([_*[\]()~`>#+\-=|{}.!])/g, '\\$1'); // Escape special chars
+
       line = line.trim();
       if (line.startsWith('*')) {
         return `${line.replace(/^\*|\*$/g, '')}:`;
@@ -68,7 +51,6 @@ function formatText(text) {
     .join('\n');
 }
 
-// Handler for documents
 bot.on(message('document'), async (ctx) => {
   try {
     await ctx.reply('📚 Processing your PDF...');
@@ -123,13 +105,6 @@ async function summarize(text, prompt) {
     return ["Sorry, I couldn't generate a summary at this time."];
   }
 }
-
-// Start bot
 bot.launch();
-
-// Handle graceful shutdown
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
-
-// Listen for incoming requests
-module.exports = app;
