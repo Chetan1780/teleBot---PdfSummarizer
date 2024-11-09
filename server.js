@@ -3,9 +3,24 @@ const { message } = require('telegraf/filters');
 const axios = require('axios');
 const pdf = require('pdf-parse');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const express = require('express');
+const app = express();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-bot.telegram.setWebhook(`https:tele-bot-pdf-summarizer.vercel.app/bot${process.env.BOT_TOKEN}`);
+
+// Webhook route
+app.post('/webhook', async (req, res) => {
+  try {
+    await bot.handleUpdate(req.body);
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Error in webhook handling:', error);
+    res.sendStatus(500);
+  }
+});
+
+// Set the webhook
+bot.telegram.setWebhook(`https://tele-bot-pdf-summarizer.vercel.app/webhook`);
 
 function splitIntoChunks(text, maxLength = 3000) {
   const chunks = [];
@@ -106,6 +121,13 @@ async function summarize(text, prompt) {
     return ["Sorry, I couldn't generate a summary at this time."];
   }
 }
+
+// Start bot
 bot.launch();
+
+// Handle graceful shutdown
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
+// Listen for incoming requests on Vercel
+module.exports = app;
